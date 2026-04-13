@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Database } from '../types/database.types'
-import { Plus, Check, X, Edit, Power, Trash2 } from 'lucide-react'
+import { Plus, X, Edit, Power } from 'lucide-react'
 import clsx from 'clsx'
 
 type Jugador = Database['public']['Tables']['jugadores']['Row']

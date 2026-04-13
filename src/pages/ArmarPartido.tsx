@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { Database } from '../types/database.types'
 import { armarEquiposInteligente, EquipoArmado } from '../lib/teamBuilderLogic'

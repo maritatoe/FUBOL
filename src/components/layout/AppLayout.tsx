@@ -1,4 +1,3 @@
-import React from 'react'
 import { Outlet, NavLink } from 'react-router-dom'
 import { Users, UserPlus, History, Trophy } from 'lucide-react'
 import clsx from 'clsx'

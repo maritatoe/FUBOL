@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { recalcularYActualizarRating } from '../lib/ratingLogic'
-import { CheckCircle2, ChevronRight } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 
 export default function PuntuarPartido() {
   const { partidoId } = useParams()

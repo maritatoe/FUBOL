@@ -37,6 +37,7 @@ export interface Database {
           activo?: boolean
           created_at?: string
         }
+        Relationships: []
       }
       partidos: {
         Row: {
@@ -54,6 +55,7 @@ export interface Database {
           fecha?: string
           formacion?: string
         }
+        Relationships: []
       }
       equipos_partido: {
         Row: {
@@ -77,6 +79,20 @@ export interface Database {
           equipo?: 'A' | 'B'
           posicion_asignada?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "equipos_partido_partido_id_fkey"
+            columns: ["partido_id"]
+            referencedRelation: "partidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipos_partido_jugador_id_fkey"
+            columns: ["jugador_id"]
+            referencedRelation: "jugadores"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       rendimiento: {
         Row: {
@@ -97,7 +113,34 @@ export interface Database {
           jugador_id?: string
           puntaje?: number
         }
+        Relationships: [
+          {
+            foreignKeyName: "rendimiento_partido_id_fkey"
+            columns: ["partido_id"]
+            referencedRelation: "partidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rendimiento_jugador_id_fkey"
+            columns: ["jugador_id"]
+            referencedRelation: "jugadores"
+            referencedColumns: ["id"]
+          }
+        ]
       }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }
+

@@ -105,7 +105,6 @@ export function armarEquiposInteligente(
   // PASO 5 - Swap básico para equilibrar aún más
   let finalDiferencia = Math.abs(sumA() - sumB())
   if (finalDiferencia > 2) {
-    let mejorRecambio = false;
     // Intentar intercambiar jugadores de la misma posición asignada
     for (let i = 0; i < equipoA.length; i++) {
       for (let j = 0; j < equipoB.length; j++) {
@@ -120,7 +119,6 @@ export function armarEquiposInteligente(
             equipoA[i] = equipoB[j]
             equipoB[j] = temp
             finalDiferencia = nuevaDiff
-            mejorRecambio = true;
           }
         }
       }
