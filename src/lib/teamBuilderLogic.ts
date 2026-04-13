@@ -96,6 +96,15 @@ export function armarEquiposInteligente(
     swappeado = false
     for (let i = 0; i < equipoA.length; i++) {
       for (let j = 0; j < equipoB.length; j++) {
+        
+        // REGLA CLAVE: Nunca intercambiar un Arquero (ARQ) por un jugador de campo.
+        // Si uno es ARQ, el otro debe ser ARQ también para poder swappear.
+        const esArqA = equipoA[i].posicion_asignada === 'ARQ';
+        const esArqB = equipoB[j].posicion_asignada === 'ARQ';
+        if ((esArqA || esArqB) && equipoA[i].posicion_asignada !== equipoB[j].posicion_asignada) {
+          continue; // Salteamos este swap porque desbalancearía los arqueros
+        }
+
         const nuevoTotalA = sumA() - equipoA[i].rating + equipoB[j].rating
         const nuevoTotalB = sumB() - equipoB[j].rating + equipoA[i].rating
         const nuevaDiff = Math.abs(nuevoTotalA - nuevoTotalB)
