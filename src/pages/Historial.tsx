@@ -73,7 +73,7 @@ export default function Historial() {
                 <div className="p-4 border-t bg-gray-50 flex gap-4">
                   {/* EQ A */}
                   <div className="flex-1">
-                    <h5 className="font-bold text-blue-800 text-sm mb-2 border-b-2 border-blue-200 pb-1">Equipo Azul</h5>
+                    <h5 className="font-bold text-blue-800 text-sm mb-2 border-b-2 border-blue-200 pb-1">Barsa</h5>
                     <ul className="space-y-1">
                       {eqA.map((j:any, idx:number) => (
                         <li key={idx} className="text-xs flex justify-between">
@@ -86,7 +86,7 @@ export default function Historial() {
                   <div className="w-[1px] bg-gray-200"></div>
                   {/* EQ B */}
                   <div className="flex-1">
-                    <h5 className="font-bold text-orange-800 text-sm mb-2 border-b-2 border-orange-200 pb-1">Equipo Naranja</h5>
+                    <h5 className="font-bold text-orange-800 text-sm mb-2 border-b-2 border-orange-200 pb-1">Juve</h5>
                     <ul className="space-y-1">
                       {eqB.map((j:any, idx:number) => (
                         <li key={idx} className="text-xs flex justify-between">

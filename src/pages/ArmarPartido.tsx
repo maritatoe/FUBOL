@@ -11,7 +11,6 @@ type Jugador = Database['public']['Tables']['jugadores']['Row']
 export default function ArmarPartido() {
   const [activos, setActivos] = useState<Jugador[]>([])
   const [seleccionados, setSeleccionados] = useState<Set<string>>(new Set())
-  const [formacion, setFormacion] = useState<'5v5' | '7v7' | '11v11'>('5v5')
   const [loading, setLoading] = useState(true)
   
   const [resultado, setResultado] = useState<{equipoA: EquipoArmado, equipoB: EquipoArmado, diferencia: number} | null>(null)
@@ -44,7 +43,8 @@ export default function ArmarPartido() {
     setBuildError(null)
     const justPlayers = activos.filter(j => seleccionados.has(j.id))
     try {
-      const res = armarEquiposInteligente(justPlayers, formacion, variacion)
+      const mode = `${justPlayers.length / 2}v${justPlayers.length / 2}`
+      const res = armarEquiposInteligente(justPlayers, mode, variacion)
       setResultado(res)
     } catch (err: any) {
       setBuildError(err.message)
@@ -53,6 +53,7 @@ export default function ArmarPartido() {
 
   async function guardarPartido() {
     if (!resultado) return
+    const formacion = `${seleccionados.size / 2}v${seleccionados.size / 2}`
     const { data: partido, error: pErr } = await supabase.from('partidos').insert({
       formacion
     }).select().single()
@@ -84,29 +85,15 @@ export default function ArmarPartido() {
 
   if (loading) return <div className="p-4 text-center">Cargando...</div>
 
-  const reqPorEquipo = formacion === '5v5' ? 5 : formacion === '7v7' ? 7 : 11
-  const requeridosTotal = reqPorEquipo * 2
-
   return (
     <div className="p-4 pb-24">
       <div className="mb-4">
         <h2 className="text-xl font-bold text-gray-800 mb-2">Armar Partido</h2>
-        
-        <div className="flex gap-2 mb-4 bg-gray-200 p-1 rounded-xl">
-          {['5v5', '7v7', '11v11'].map((f) => (
-            <button key={f}
-              onClick={() => { setFormacion(f as any); setResultado(null) }}
-              className={clsx("flex-1 py-2 font-bold rounded-lg transition-colors", formacion === f ? "bg-white shadow-sm text-blue-600" : "text-gray-500")}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
 
         <div className="flex justify-between items-center mb-2">
           <span className="font-semibold text-gray-700 text-sm">Activos Disponibles:</span>
-          <span className={clsx("font-bold text-sm px-2 py-0.5 rounded-full", seleccionados.size === requeridosTotal ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
-            Seleccionados: {seleccionados.size} / {requeridosTotal}
+          <span className={clsx("font-bold text-sm px-2 py-0.5 rounded-full", seleccionados.size > 0 && seleccionados.size % 2 === 0 ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700")}>
+            Seleccionados: {seleccionados.size} {seleccionados.size > 0 && seleccionados.size % 2 === 0 ? `(${seleccionados.size / 2}v${seleccionados.size / 2})` : '(Debe ser par)'}
           </span>
         </div>
 
@@ -164,7 +151,7 @@ export default function ArmarPartido() {
           <div className="grid grid-cols-2 gap-4">
             {/* Equipo A */}
             <div className="bg-white rounded-2xl p-4 shadow-md border-t-8 border-t-blue-500 relative">
-              <h3 className="font-black text-xl text-blue-900 absolute -top-4 bg-white px-3 rounded-full border border-blue-200 shadow-sm left-1/2 -translate-x-1/2">Azules</h3>
+              <h3 className="font-black text-xl text-blue-900 absolute -top-4 bg-white px-3 rounded-full border border-blue-200 shadow-sm left-1/2 -translate-x-1/2">Barsa</h3>
               <div className="text-center text-xs font-bold text-gray-500 mt-2 mb-3 bg-gray-50 rounded-lg py-1">Overall: ★{resultado.equipoA.totalRating}</div>
               
               <div className="space-y-2">
@@ -179,7 +166,7 @@ export default function ArmarPartido() {
 
             {/* Equipo B */}
             <div className="bg-white rounded-2xl p-4 shadow-md border-t-8 border-t-orange-500 relative">
-              <h3 className="font-black text-xl text-orange-900 absolute -top-4 bg-white px-3 rounded-full border border-orange-200 shadow-sm left-1/2 -translate-x-1/2">Naranjas</h3>
+              <h3 className="font-black text-xl text-orange-900 absolute -top-4 bg-white px-3 rounded-full border border-orange-200 shadow-sm left-1/2 -translate-x-1/2">Juve</h3>
               <div className="text-center text-xs font-bold text-gray-500 mt-2 mb-3 bg-gray-50 rounded-lg py-1">Overall: ★{resultado.equipoB.totalRating}</div>
               
               <div className="space-y-2">

@@ -12,19 +12,6 @@ export interface EquipoArmado {
   totalRating: number
 }
 
-interface RequisitosFormacion {
-  ARQ: number
-  DEF: number
-  MED: number
-  DEL: number
-}
-
-const FORMACIONES: Record<string, RequisitosFormacion> = {
-  '5v5': { ARQ: 1, DEF: 1, MED: 2, DEL: 1 },
-  '7v7': { ARQ: 1, DEF: 2, MED: 2, DEL: 2 },
-  '11v11': { ARQ: 1, DEF: 4, MED: 3, DEL: 3 }
-}
-
 const ORDEN_PRIORIDAD = ['ARQ', 'DEF', 'MED', 'DEL']
 
 export function armarEquiposInteligente(
@@ -33,13 +20,15 @@ export function armarEquiposInteligente(
   variacion: boolean = false
 ): { equipoA: EquipoArmado, equipoB: EquipoArmado, diferencia: number } {
   
-  const formacion = FORMACIONES[formacionStr]
-  if (!formacion) throw new Error('Formación no válida')
-  
-  const totalNecesarios = (formacion.ARQ + formacion.DEF + formacion.MED + formacion.DEL) * 2
-  if (jugadoresSeleccionados.length < totalNecesarios) {
-    throw new Error(`Se necesitan ${totalNecesarios} jugadores para una formación ${formacionStr}`)
+  if (jugadoresSeleccionados.length < 2) {
+    throw new Error('Se necesitan al menos 2 jugadores para armar equipos.')
   }
+  
+  if (jugadoresSeleccionados.length % 2 !== 0) {
+    throw new Error('La cantidad de jugadores seleccionados debe ser par para que los equipos tengan la misma cantidad de personas.')
+  }
+
+  const jugadoresPorEquipo = jugadoresSeleccionados.length / 2;
 
   // PASO 1 - Preparar y ordenar
   let jugadoresDisponibles = [...jugadoresSeleccionados].sort((a, b) => b.rating - a.rating)
@@ -47,8 +36,11 @@ export function armarEquiposInteligente(
   if (variacion) {
     // Pequeño shuffle controlado en el rating para variar equipos si se pide
     jugadoresDisponibles = jugadoresDisponibles.map(j => ({
-      jugador: j, random: j.rating + (Math.random() * 1.5 - 0.75)
-    })).sort((a, b) => b.random - a.random).map(j => j.jugador)
+      ...j, random: j.rating + (Math.random() * 1.5 - 0.75)
+    })).sort((a, b) => b.random - a.random).map(j => {
+      const { random, ...rest } = j;
+      return rest as Jugador;
+    })
   }
 
   const equipoA: JugadorAsignado[] = []
@@ -58,70 +50,68 @@ export function armarEquiposInteligente(
   const sumA = () => equipoA.reduce((s, j) => s + j.rating, 0)
   const sumB = () => equipoB.reduce((s, j) => s + j.rating, 0)
 
-  // Asigna al equipo con menor rating total
+  // Asigna al equipo con menor rating total que aún tenga cupo
   const asignar = (jugador: JugadorAsignado) => {
-    if (sumA() <= sumB() && equipoA.length < totalNecesarios / 2) {
-      equipoA.push(jugador)
-    } else if (equipoB.length < totalNecesarios / 2) {
-      equipoB.push(jugador)
+    if (equipoA.length < jugadoresPorEquipo && equipoB.length < jugadoresPorEquipo) {
+       if (sumA() <= sumB()) {
+         equipoA.push(jugador)
+       } else {
+         equipoB.push(jugador)
+       }
+    } else if (equipoA.length < jugadoresPorEquipo) {
+       equipoA.push(jugador)
     } else {
-      equipoA.push(jugador) // fallback
+       equipoB.push(jugador)
     }
   }
 
-  // PASO 2 y 3 - Asignar por posición (ARQ -> DEF -> MED -> DEL)
+  // PASO 2 - Distribuir por posición prioritaria para asegurar que queden repartidos (Ej: arqueros)
   for (const pos of ORDEN_PRIORIDAD) {
-    let requeridosPorEquipo = formacion[pos as keyof RequisitosFormacion]
-    let totalPosRequeridos = requeridosPorEquipo * 2
-
-    while (totalPosRequeridos > 0) {
-      // Buscar el mejor disponible para esta posición
-      let candidatoIdx = jugadoresDisponibles.findIndex(j => j.posiciones.includes(pos))
-      
-      // Si no hay jugadores para la posición, se toma el de mayor rating libre (Fallback)
-      if (candidatoIdx === -1) {
-        candidatoIdx = 0
-      }
-
+    while (true) {
+      const candidatoIdx = jugadoresDisponibles.findIndex(j => j.posiciones.includes(pos))
       if (candidatoIdx !== -1) {
         const selected = jugadoresDisponibles.splice(candidatoIdx, 1)[0]
         asignar({ ...selected, posicion_asignada: pos })
-        totalPosRequeridos--
       } else {
-        break // Literalmente no hay más jugadores
+        break // Ya no hay más jugadores que jueguen en esta posición
       }
     }
   }
 
-  // PASO 4 - Completar sobras si las hay (los que no cumplieron las cuotas)
+  // PASO 3 - Cualquier jugador sobrante (no debería ocurrir porque todos tienen al menos 1 posición)
   while (jugadoresDisponibles.length > 0) {
-    if (equipoA.length >= totalNecesarios / 2 && equipoB.length >= totalNecesarios / 2) break; // Equipos ya llenos
-
     const selected = jugadoresDisponibles.shift()!
     const posOriginal = selected.posiciones[0] || 'MED'
     asignar({ ...selected, posicion_asignada: posOriginal })
   }
 
-  // PASO 5 - Swap básico para equilibrar aún más
+  // PASO 4 - Swap para equilibrar ratings lo máximo posible
+  // Si se pide variación, somos menos estrictos para no deshacer la mezcla aleatoria.
   let finalDiferencia = Math.abs(sumA() - sumB())
-  if (finalDiferencia > 2) {
-    // Intentar intercambiar jugadores de la misma posición asignada
+  let swappeado = true
+  
+  const umbralTolerancia = variacion ? 2.5 : 0.3;
+  
+  while (swappeado && finalDiferencia > umbralTolerancia) {
+    swappeado = false
     for (let i = 0; i < equipoA.length; i++) {
       for (let j = 0; j < equipoB.length; j++) {
-        if (equipoA[i].posicion_asignada === equipoB[j].posicion_asignada) {
-          const nuevoTotalA = sumA() - equipoA[i].rating + equipoB[j].rating
-          const nuevoTotalB = sumB() - equipoB[j].rating + equipoA[i].rating
-          const nuevaDiff = Math.abs(nuevoTotalA - nuevoTotalB)
-          
-          if (nuevaDiff < finalDiferencia) {
-            // Swap!
-            const temp = equipoA[i]
-            equipoA[i] = equipoB[j]
-            equipoB[j] = temp
-            finalDiferencia = nuevaDiff
-          }
+        const nuevoTotalA = sumA() - equipoA[i].rating + equipoB[j].rating
+        const nuevoTotalB = sumB() - equipoB[j].rating + equipoA[i].rating
+        const nuevaDiff = Math.abs(nuevoTotalA - nuevoTotalB)
+        
+        // Solo swappeamos si mejora, y si estamos buscando variación, solo si mejora MUCHO (para no deshacer el random)
+        if (nuevaDiff < finalDiferencia && (!variacion || (finalDiferencia - nuevaDiff) > 1.0)) {
+          // Swap para tener menor diferencia de nivel
+          const temp = equipoA[i]
+          equipoA[i] = equipoB[j]
+          equipoB[j] = temp
+          finalDiferencia = nuevaDiff
+          swappeado = true
+          break // Rompemos para re-calcular todo
         }
       }
+      if (swappeado) break
     }
   }
 

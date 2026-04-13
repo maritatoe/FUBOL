@@ -14,7 +14,7 @@ export function AppLayout() {
     <div className="flex flex-col min-h-screen bg-gray-50 max-w-md mx-auto shadow-xl relative overflow-hidden sm:max-w-lg md:max-w-xl">
       {/* Header Mobile Opcional */}
       <header className="bg-blue-600 text-white p-4 shadow-md z-10 sticky top-0">
-        <h1 className="text-xl font-bold text-center tracking-wide">Fútbol Match</h1>
+        <h1 className="text-xl font-bold text-center tracking-wide">Soccer Match</h1>
       </header>
       
       {/* Main Content */}

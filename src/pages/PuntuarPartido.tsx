@@ -102,8 +102,8 @@ export default function PuntuarPartido() {
         <p className="text-sm text-blue-100 mt-1">Califica el rendimiento de cada jugador. Esto afectará su rating general según el algoritmo dinámico.</p>
       </div>
 
-      <RenderEquipo eq={equipoA} color="border-blue-500" title="Equipo Azul" />
-      <RenderEquipo eq={equipoB} color="border-orange-500" title="Equipo Naranja" />
+      <RenderEquipo eq={equipoA} color="border-blue-500" title="Barsa" />
+      <RenderEquipo eq={equipoB} color="border-orange-500" title="Juve" />
 
       <button 
         onClick={guardarPuntajes}
