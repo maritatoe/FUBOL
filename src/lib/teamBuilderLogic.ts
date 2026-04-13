@@ -25,32 +25,35 @@ export function armarEquiposInteligente(
   }
 
   if (jugadoresSeleccionados.length % 2 !== 0) {
-    throw new Error('La cantidad de jugadores seleccionados debe ser par para que los equipos tengan la misma cantidad de personas.')
+    throw new Error('La cantidad de jugadores debe ser par.')
   }
 
-  const jugadoresPorEquipo = jugadoresSeleccionados.length / 2;
+  const jugadoresPorEquipo = jugadoresSeleccionados.length / 2
 
-  // PASO 1 - Preparar y ordenar
-  let jugadoresDisponibles = [...jugadoresSeleccionados].sort((a, b) => b.rating - a.rating)
+  // PASO 1 - Ordenar
+  let jugadoresDisponibles = [...jugadoresSeleccionados]
+    .sort((a, b) => b.rating - a.rating)
 
   if (variacion) {
-    // Pequeño shuffle controlado en el rating para variar equipos si se pide
-    jugadoresDisponibles = jugadoresDisponibles.map(j => ({
-      ...j, random: j.rating + (Math.random() * 1.5 - 0.75)
-    })).sort((a, b) => b.random - a.random).map(j => {
-      const { random, ...rest } = j;
-      return rest as Jugador;
-    })
+    jugadoresDisponibles = jugadoresDisponibles
+      .map(j => ({
+        ...j,
+        random: j.rating + (Math.random() * 1.5 - 0.75)
+      }))
+      .sort((a, b) => b.random - a.random)
+      .map(j => {
+        const { random, ...rest } = j
+        return rest as Jugador
+      })
   }
 
   const equipoA: JugadorAsignado[] = []
   const equipoB: JugadorAsignado[] = []
 
-  // Calcular ratings acumulados actuales
   const sumA = () => equipoA.reduce((s, j) => s + j.rating, 0)
   const sumB = () => equipoB.reduce((s, j) => s + j.rating, 0)
 
-  // Asigna al equipo con menor rating total que aún tenga cupo
+  // ✅ FIX: sin duplicaciones
   const asignar = (jugador: JugadorAsignado) => {
     if (equipoA.length < jugadoresPorEquipo && equipoB.length < jugadoresPorEquipo) {
       if (sumA() <= sumB()) {
@@ -65,68 +68,82 @@ export function armarEquiposInteligente(
     }
   }
 
-  // PASO 2 - Distribuir por posición prioritaria para asegurar que queden repartidos (Ej: arqueros)
+  // PASO 2 - Prioridad por posición
   for (const pos of ORDEN_PRIORIDAD) {
     while (true) {
-      const candidatoIdx = jugadoresDisponibles.findIndex(j => j.posiciones.includes(pos))
-      if (candidatoIdx !== -1) {
-        const selected = jugadoresDisponibles.splice(candidatoIdx, 1)[0]
-        asignar({ ...selected, posicion_asignada: pos })
-      } else {
-        break // Ya no hay más jugadores que jueguen en esta posición
-      }
+      const idx = jugadoresDisponibles.findIndex(j =>
+        j.posiciones?.includes(pos)
+      )
+
+      if (idx === -1) break
+
+      const selected = jugadoresDisponibles.splice(idx, 1)[0]
+
+      asignar({
+        ...selected,
+        posicion_asignada: pos
+      })
     }
   }
 
-  // PASO 3 - Cualquier jugador sobrante (no debería ocurrir porque todos tienen al menos 1 posición)
+  // PASO 3 - Fallback
   while (jugadoresDisponibles.length > 0) {
     const selected = jugadoresDisponibles.shift()!
-    const posOriginal = selected.posiciones[0] || 'MED'
-    asignar({ ...selected, posicion_asignada: posOriginal })
+
+    asignar({
+      ...selected,
+      posicion_asignada: selected.posiciones?.[0] || 'MED'
+    })
   }
 
-  // PASO 4 - Swap para equilibrar ratings lo máximo posible
-  // Si se pide variación, somos menos estrictos para no deshacer la mezcla aleatoria.
-  let finalDiferencia = Math.abs(sumA() - sumB())
-  let swappeado = true
+  // PASO 4 - Balanceo fino
+  let diferencia = Math.abs(sumA() - sumB())
+  let cambio = true
 
-  const umbralTolerancia = variacion ? 2.5 : 0.3;
+  const tolerancia = variacion ? 2.5 : 0.3
 
-  while (swappeado && finalDiferencia > umbralTolerancia) {
-    swappeado = false
+  while (cambio && diferencia > tolerancia) {
+    cambio = false
+
     for (let i = 0; i < equipoA.length; i++) {
       for (let j = 0; j < equipoB.length; j++) {
 
-        // REGLA CLAVE: Nunca intercambiar un Arquero (ARQ) por un jugador de campo.
-        // Si uno es ARQ, el otro debe ser ARQ también para poder swappear.
-        const esArqA = equipoA[i].posicion_asignada === 'ARQ';
-        const esArqB = equipoB[j].posicion_asignada === 'ARQ';
+        const esArqA = equipoA[i].posicion_asignada === 'ARQ'
+        const esArqB = equipoB[j].posicion_asignada === 'ARQ'
+
         if ((esArqA || esArqB) && equipoA[i].posicion_asignada !== equipoB[j].posicion_asignada) {
-          continue; // Salteamos este swap porque desbalancearía los arqueros
+          continue
         }
 
-        const nuevoTotalA = sumA() - equipoA[i].rating + equipoB[j].rating
-        const nuevoTotalB = sumB() - equipoB[j].rating + equipoA[i].rating
-        const nuevaDiff = Math.abs(nuevoTotalA - nuevoTotalB)
+        const nuevoA = sumA() - equipoA[i].rating + equipoB[j].rating
+        const nuevoB = sumB() - equipoB[j].rating + equipoA[i].rating
+        const nuevaDiff = Math.abs(nuevoA - nuevoB)
 
-        // Solo swappeamos si mejora, y si estamos buscando variación, solo si mejora MUCHO (para no deshacer el random)
-        if (nuevaDiff < finalDiferencia && (!variacion || (finalDiferencia - nuevaDiff) > 1.0)) {
-          // Swap para tener menor diferencia de nivel
+        if (nuevaDiff < diferencia && (!variacion || (diferencia - nuevaDiff) > 1)) {
           const temp = equipoA[i]
           equipoA[i] = equipoB[j]
           equipoB[j] = temp
-          finalDiferencia = nuevaDiff
-          swappeado = true
-          break // Rompemos para re-calcular todo
+
+          diferencia = nuevaDiff
+          cambio = true
+          break
         }
       }
-      if (swappeado) break
+      if (cambio) break
     }
   }
 
   return {
-    equipoA: { nombre: 'A', jugadores: equipoA, totalRating: Number(sumA().toFixed(2)) },
-    equipoB: { nombre: 'B', jugadores: equipoB, totalRating: Number(sumB().toFixed(2)) },
-    diferencia: Number(finalDiferencia.toFixed(2))
+    equipoA: {
+      nombre: 'A',
+      jugadores: equipoA,
+      totalRating: Number(sumA().toFixed(2))
+    },
+    equipoB: {
+      nombre: 'B',
+      jugadores: equipoB,
+      totalRating: Number(sumB().toFixed(2))
+    },
+    diferencia: Number(diferencia.toFixed(2))
   }
 }
