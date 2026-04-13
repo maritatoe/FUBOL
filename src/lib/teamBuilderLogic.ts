@@ -19,11 +19,11 @@ export function armarEquiposInteligente(
   formacionStr: string,
   variacion: boolean = false
 ): { equipoA: EquipoArmado, equipoB: EquipoArmado, diferencia: number } {
-  
+
   if (jugadoresSeleccionados.length < 2) {
     throw new Error('Se necesitan al menos 2 jugadores para armar equipos.')
   }
-  
+
   if (jugadoresSeleccionados.length % 2 !== 0) {
     throw new Error('La cantidad de jugadores seleccionados debe ser par para que los equipos tengan la misma cantidad de personas.')
   }
@@ -32,7 +32,7 @@ export function armarEquiposInteligente(
 
   // PASO 1 - Preparar y ordenar
   let jugadoresDisponibles = [...jugadoresSeleccionados].sort((a, b) => b.rating - a.rating)
-  
+
   if (variacion) {
     // Pequeño shuffle controlado en el rating para variar equipos si se pide
     jugadoresDisponibles = jugadoresDisponibles.map(j => ({
@@ -53,15 +53,15 @@ export function armarEquiposInteligente(
   // Asigna al equipo con menor rating total que aún tenga cupo
   const asignar = (jugador: JugadorAsignado) => {
     if (equipoA.length < jugadoresPorEquipo && equipoB.length < jugadoresPorEquipo) {
-       if (sumA() <= sumB()) {
-         equipoA.push(jugador)
-       } else {
-         equipoB.push(jugador)
-       }
+      if (sumA() <= sumB()) {
+        equipoA.push(jugador)
+      } else {
+        equipoB.push(jugador)
+      }
     } else if (equipoA.length < jugadoresPorEquipo) {
-       equipoA.push(jugador)
+      equipoA.push(jugador)
     } else {
-       equipoB.push(jugador)
+      equipoB.push(jugador)
     }
   }
 
@@ -89,14 +89,14 @@ export function armarEquiposInteligente(
   // Si se pide variación, somos menos estrictos para no deshacer la mezcla aleatoria.
   let finalDiferencia = Math.abs(sumA() - sumB())
   let swappeado = true
-  
+
   const umbralTolerancia = variacion ? 2.5 : 0.3;
-  
+
   while (swappeado && finalDiferencia > umbralTolerancia) {
     swappeado = false
     for (let i = 0; i < equipoA.length; i++) {
       for (let j = 0; j < equipoB.length; j++) {
-        
+
         // REGLA CLAVE: Nunca intercambiar un Arquero (ARQ) por un jugador de campo.
         // Si uno es ARQ, el otro debe ser ARQ también para poder swappear.
         const esArqA = equipoA[i].posicion_asignada === 'ARQ';
@@ -108,7 +108,7 @@ export function armarEquiposInteligente(
         const nuevoTotalA = sumA() - equipoA[i].rating + equipoB[j].rating
         const nuevoTotalB = sumB() - equipoB[j].rating + equipoA[i].rating
         const nuevaDiff = Math.abs(nuevoTotalA - nuevoTotalB)
-        
+
         // Solo swappeamos si mejora, y si estamos buscando variación, solo si mejora MUCHO (para no deshacer el random)
         if (nuevaDiff < finalDiferencia && (!variacion || (finalDiferencia - nuevaDiff) > 1.0)) {
           // Swap para tener menor diferencia de nivel
